@@ -3,22 +3,31 @@ import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 import ParallaxScrollView from "@/components/parallax-scroll-view";
 import BtnPlay from "@/components/ui/BtnPlay";
+import { useRouter } from "expo-router";
 
 export default function HomeScreen() {
+  const router = useRouter();
+
+  const handleGoToSettings = () => {
+    router.push("/settings_game");
+  };
+
   return (
     <ParallaxScrollView
       headerBackgroundColor={{ light: "#A1CEDC", dark: "#1D3D47" }}
       headerImage={
         <Image
           source={require("@/assets/images/Cover-inicial.png")}
-          style={styles.reactLogo}  
+          style={styles.reactLogo}
         />
       }
     >
       <View className="items-center justify-center flex-1 h-full gap-8 px-4 py-16">
         <BtnPlay />
-        <TouchableOpacity>
-          <Text className="text-xl text-white underline font-Helvetica">Configurar</Text>
+        <TouchableOpacity onPress={handleGoToSettings}>
+          <Text className="text-xl text-white underline font-Helvetica">
+            Configurar
+          </Text>
         </TouchableOpacity>
       </View>
     </ParallaxScrollView>

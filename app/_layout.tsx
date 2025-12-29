@@ -8,11 +8,13 @@ import { StatusBar } from "expo-status-bar";
 import "react-native-reanimated";
 import "../global.css";
 
-// 1. IMPORTACIONES DE FUENTES
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useFonts } from "expo-font";
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect } from "react";
+
+import { SQLiteProvider } from "expo-sqlite";
+import { initializeDatabase } from "../assets/utils/database";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -23,11 +25,9 @@ export const unstable_settings = {
 export default function RootLayout() {
   const colorScheme = useColorScheme();
   const [loaded, error] = useFonts({
-    // Nombre que usarás internamente : Ruta del archivo
     HelveticaNowDisplayRegular: require("../assets/fonts/HelveticaNowDisplay-Regular.ttf"),
   });
 
-  // 3. MANEJO DE ERRORES Y OCULTAR SPLASH SCREEN
   useEffect(() => {
     if (error) throw error;
   }, [error]);
@@ -38,22 +38,26 @@ export default function RootLayout() {
     }
   }, [loaded]);
 
-  // Si no ha cargado, no renderizamos nada (la Splash Screen sigue visible)
   if (!loaded) {
     return null;
   }
 
   return (
     <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="index" options={{ headerShown: false }} />
+      <SQLiteProvider databaseName="imposter.db" onInit={initializeDatabase}>
+        <Stack>
+          <Stack.Screen name="index" options={{ headerShown: false }} />
+          <Stack.Screen name="settings_game" options={{ headerShown: false }} />
+          <Stack.Screen name="words_categorys" options={{ headerShown: false }} />
+          <Stack.Screen name="add_category" options={{ headerShown: false }} />
 
-        <Stack.Screen
-          name="modal"
-          options={{ presentation: "modal", title: "Modal" }}
-        />
-      </Stack>
-      <StatusBar style="auto" />
+          <Stack.Screen
+            name="modal"
+            options={{ presentation: "modal", title: "Modal" }}
+          />
+        </Stack>
+        <StatusBar style="auto" />
+      </SQLiteProvider>
     </ThemeProvider>
   );
 }
