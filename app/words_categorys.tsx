@@ -22,15 +22,6 @@ import Animated, {
     withSpring,
 } from "react-native-reanimated";
 
-// 1. DATOS DE EJEMPLO (Mock Data para visualizar)
-const MOCK_CATEGORIES = [
-  { id: "1", name: "Animales", count: 42, icon: "paw", isCustom: false },
-  { id: "2", name: "Medicina", count: 15, icon: "medkit", isCustom: true },
-  { id: "3", name: "Cine", count: 28, icon: "videocam", isCustom: false },
-  { id: "4", name: "Países", count: 196, icon: "globe", isCustom: false },
-  { id: "5", name: "Mis Amigos", count: 8, icon: "people", isCustom: true },
-];
-
 // Componente animado para Pressable
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 

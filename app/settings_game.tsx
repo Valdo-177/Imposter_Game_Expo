@@ -95,10 +95,16 @@ const SettingsGame = () => {
             onPress={() => router.push("/words_categorys")}
           />
           <SettingsItem
+            iconName="list-circle-outline" // O "albums-outline"
+            title="Lista de Palabras"
+            subtitle="Buscar, filtrar y editar"
+            onPress={() => router.push("/words_list")}
+          />
+          <SettingsItem
             iconName="add-circle-outline"
             title="Añadir Palabras"
             subtitle="Crear tus propias palabras"
-            onPress={() => console.log("Ir a añadir")}
+            onPress={() => router.push("/add_word")}
             isLast
           />
         </View>
