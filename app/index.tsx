@@ -23,7 +23,7 @@ export default function HomeScreen() {
       }
     >
       <View className="items-center justify-center flex-1 h-full gap-8 px-4 py-16">
-        <BtnPlay />
+        <BtnPlay onPress={() => router.push("/setup_game")} />
         <TouchableOpacity onPress={handleGoToSettings}>
           <Text className="text-xl text-white underline font-Helvetica">
             Configurar

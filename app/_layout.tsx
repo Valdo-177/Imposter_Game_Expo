@@ -143,6 +143,11 @@ export default function RootLayout() {
       <SQLiteProvider databaseName="imposter.db" onInit={initializeDatabase}>
         <Stack>
           <Stack.Screen name="index" options={{ headerShown: false }} />
+          
+          <Stack.Screen name="setup_game" options={{ headerShown: false }} />
+          <Stack.Screen name="role_pass" options={{ headerShown: false }} />
+          <Stack.Screen name="game_room" options={{ headerShown: false }} />
+
           <Stack.Screen name="settings_game" options={{ headerShown: false }} />
           <Stack.Screen
             name="words_categorys"
