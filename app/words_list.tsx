@@ -189,6 +189,7 @@ export default function WordsListScreen() {
           text: word.text, // Ojo: en add_word recibes "name" para cat, ajusta para recibir "text" si es palabra
           categoryId: word.category_id,
           difficulty: word.difficulty,
+          hint: word.hint,
           // Truco: Pasamos nombres para pre-llenar visualmente si hace falta
           initialCatIcon: word.category_icon,
         },

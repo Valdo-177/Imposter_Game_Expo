@@ -1,27 +1,26 @@
 import { useSQLiteContext } from "expo-sqlite";
 import { useCallback, useState } from "react";
 
-// Interfaz enriquecida para la lista (incluye datos de la categoría)
+// 1. Actualizamos la interfaz
 export interface WordWithCategory {
   id: number;
   text: string;
+  hint?: string; // <--- Nuevo campo (opcional)
   category_id: number;
   difficulty: 1 | 2 | 3;
-  category_name?: string; // Viene del JOIN
-  category_icon?: string; // Viene del JOIN
+  category_name?: string; 
+  category_icon?: string; 
 }
 
 export const useWords = () => {
   const db = useSQLiteContext();
-  // Usamos la interfaz enriquecida
   const [words, setWords] = useState<WordWithCategory[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  // 1. OBTENER TODAS LAS PALABRAS (CON DATOS DE CATEGORÍA)
+  // OBTENER TODAS (El SELECT w.* ya trae la columna hint si existe en la BD)
   const fetchAllWords = useCallback(async () => {
     setIsLoading(true);
     try {
-      // JOIN: Unimos tablas para traer el nombre e icono de la categoría en una sola consulta
       const result = await db.getAllAsync<WordWithCategory>(`
         SELECT w.*, c.name as category_name, c.icon as category_icon
         FROM words w
@@ -36,14 +35,17 @@ export const useWords = () => {
     }
   }, [db]);
 
-  // 2. AGREGAR PALABRA (Ya la tienes, la dejo igual)
+  // 2. AGREGAR PALABRA (Recibimos hint)
   const addWord = async (
     text: string,
     categoryId: number,
-    difficulty: number
+    difficulty: number,
+    hint: string = "" // Valor por defecto vacío
   ) => {
     try {
       const cleanText = text.trim();
+      const cleanHint = hint.trim();
+
       if (!cleanText)
         return { success: false, error: "El texto no puede estar vacío" };
 
@@ -57,29 +59,33 @@ export const useWords = () => {
           error: "Esta palabra ya existe en esta categoría",
         };
 
+      // INCLUIMOS hint EN EL INSERT
       await db.runAsync(
-        "INSERT INTO words (text, category_id, difficulty) VALUES (?, ?, ?)",
+        "INSERT INTO words (text, category_id, difficulty, hint) VALUES (?, ?, ?, ?)",
         cleanText,
         categoryId,
-        difficulty
+        difficulty,
+        cleanHint
       );
       return { success: true };
     } catch (error) {
       console.error(error);
-      return { success: false, error: "Error BD" };
+      return { success: false, error: "Error BD al guardar" };
     }
   };
 
-  // 3. ACTUALIZAR PALABRA (NUEVO)
+  // 3. ACTUALIZAR PALABRA (Recibimos hint)
   const updateWord = async (
     id: number,
     text: string,
     categoryId: number,
-    difficulty: number
+    difficulty: number,
+    hint: string = ""
   ) => {
     try {
       const cleanText = text.trim();
-      // Validamos duplicados EXCLUYENDO la palabra actual (id != ?)
+      const cleanHint = hint.trim();
+
       const existing = await db.getFirstAsync<{ count: number }>(
         `SELECT COUNT(*) as count FROM words 
          WHERE LOWER(text) = LOWER(?) AND category_id = ? AND id != ?`,
@@ -90,11 +96,13 @@ export const useWords = () => {
         return { success: false, error: "Esa palabra ya existe" };
       }
 
+      // INCLUIMOS hint EN EL UPDATE
       await db.runAsync(
-        "UPDATE words SET text = ?, category_id = ?, difficulty = ? WHERE id = ?",
+        "UPDATE words SET text = ?, category_id = ?, difficulty = ?, hint = ? WHERE id = ?",
         cleanText,
         categoryId,
         difficulty,
+        cleanHint,
         id
       );
 
@@ -105,7 +113,6 @@ export const useWords = () => {
     }
   };
 
-  // 4. ELIMINAR PALABRA
   const deleteWord = async (id: number) => {
     try {
       await db.runAsync("DELETE FROM words WHERE id = ?", id);
@@ -118,9 +125,9 @@ export const useWords = () => {
   return {
     words,
     isLoading,
-    fetchAllWords, // <--- Importante exportar esto
+    fetchAllWords,
     addWord,
-    updateWord, // <--- Y esto
+    updateWord,
     deleteWord,
   };
 };

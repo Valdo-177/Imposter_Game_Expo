@@ -15,7 +15,7 @@ import Animated, {
     SlideOutLeft,
     useAnimatedStyle,
     useSharedValue,
-    withSpring
+    withSpring,
 } from "react-native-reanimated";
 
 // Hooks
@@ -95,7 +95,7 @@ const SecretCard = ({
               <Ionicons name="finger-print" size={40} color="#D8B4FE" />
             </View>
             <Text className="text-lg font-bold text-white font-Helvetica">
-              MANTÉN PARA VER
+              DESLIZA HACIA ARRIBA PARA VER
             </Text>
             <Text className="text-[#D8B4FE] text-xs mt-1 uppercase tracking-widest">
               Suelta para ocultar
@@ -136,8 +136,8 @@ export default function RolePassScreen() {
       // Pasamos los datos de los jugadores a la siguiente pantalla
       router.push({
         pathname: "/game_room",
-        params: { 
-            players: JSON.stringify(playersQueue) 
+        params: {
+          players: JSON.stringify(playersQueue),
         },
       });
     }
@@ -183,14 +183,14 @@ export default function RolePassScreen() {
             key={currentPlayerIndex} // <--- CLAVE PARA LA TRANSICIÓN
             entering={SlideInRight.springify().damping(100)}
             exiting={SlideOutLeft.duration(200)}
-            style={{ width: '100%' }}
+            style={{ width: "100%" }}
           >
             <SecretCard
               player={currentPlayer}
               onPeek={() => {
                 if (!hasPeeked) {
-                    setHasPeeked(true);
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                  setHasPeeked(true);
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
                 }
               }}
             />
@@ -213,8 +213,8 @@ export default function RolePassScreen() {
               </Pressable>
             </Animated.View>
           ) : (
-             // Espacio vacío para que no salte el layout
-             <View />
+            // Espacio vacío para que no salte el layout
+            <View />
           )}
         </View>
       </View>

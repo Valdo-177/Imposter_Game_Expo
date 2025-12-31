@@ -23,6 +23,7 @@ import Toast, { BaseToast, ErrorToast } from "react-native-toast-message";
 
 // IMPORTAMOS TU COMPONENTE DE SPLASH
 import AnimatedSplash from "@/components/AnimatedSplash";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 // Evitamos que el splash nativo se oculte automáticamente
 SplashScreen.preventAutoHideAsync();
@@ -151,44 +152,51 @@ export default function RootLayout() {
     <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
       <SQLiteProvider databaseName="imposter.db" onInit={initializeDatabase}>
         {/* Envolvemos todo en una View para manejar el Layout y el Splash Overlay */}
-        <View style={{ flex: 1 }} onLayout={onLayoutRootView}>
-          {/* 1. ANIMACIÓN SPLASH (Se muestra encima de todo hasta terminar) */}
-          {!splashAnimationFinished && (
-            <AnimatedSplash
-              onFinish={() => {
-                console.log("Splash animation finished");
-                setSplashAnimationFinished(true);
-              }}
-            />
-          )}
+        <GestureHandlerRootView style={{ flex: 1 }}>
+          <View style={{ flex: 1 }} onLayout={onLayoutRootView}>
+            {/* 1. ANIMACIÓN SPLASH (Se muestra encima de todo hasta terminar) */}
+            {!splashAnimationFinished && (
+              <AnimatedSplash
+                onFinish={() => {
+                  console.log("Splash animation finished");
+                  setSplashAnimationFinished(true);
+                }}
+              />
+            )}
 
-          {/* 2. TU NAVEGACIÓN (Stack) */}
-          <Stack>
-            <Stack.Screen name="index" options={{ headerShown: false }} />
-            <Stack.Screen name="setup_game" options={{ headerShown: false }} />
-            <Stack.Screen name="role_pass" options={{ headerShown: false }} />
-            <Stack.Screen name="game_room" options={{ headerShown: false }} />
-            <Stack.Screen
-              name="settings_game"
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen
-              name="words_categorys"
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen name="add_word" options={{ headerShown: false }} />
-            <Stack.Screen
-              name="add_category"
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen name="words_list" options={{ headerShown: false }} />
-            <Stack.Screen
-              name="modal"
-              options={{ presentation: "modal", title: "Modal" }}
-            />
-          </Stack>
-        </View>
-
+            {/* 2. TU NAVEGACIÓN (Stack) */}
+            <Stack>
+              <Stack.Screen name="index" options={{ headerShown: false }} />
+              <Stack.Screen
+                name="setup_game"
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen name="role_pass" options={{ headerShown: false }} />
+              <Stack.Screen name="game_room" options={{ headerShown: false }} />
+              <Stack.Screen
+                name="settings_game"
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="words_categorys"
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen name="add_word" options={{ headerShown: false }} />
+              <Stack.Screen
+                name="add_category"
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="words_list"
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="modal"
+                options={{ presentation: "modal", title: "Modal" }}
+              />
+            </Stack>
+          </View>
+        </GestureHandlerRootView>
         <StatusBar style="auto" />
       </SQLiteProvider>
 
