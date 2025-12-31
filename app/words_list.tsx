@@ -17,7 +17,7 @@ import Animated, {
     Layout,
     useAnimatedStyle,
     useSharedValue,
-    withSpring
+    withSpring,
 } from "react-native-reanimated";
 
 // Hooks
@@ -119,25 +119,25 @@ export default function WordsListScreen() {
   // 1. DATOS
   const { words, fetchAllWords, deleteWord, isLoading } = useWords();
   const { categories, refreshCategories } = useCategories();
-
+  
   // 2. ESTADOS DE FILTRO
   const [searchText, setSearchText] = useState("");
   const [selectedCatFilter, setSelectedCatFilter] = useState<number | null>(
     null
-  ); // Null = Todos
+); // Null = Todos
   const [selectedDiffFilter, setSelectedDiffFilter] = useState<number | null>(
-    null
-  ); // Null = Todos
+      null
+    ); // Null = Todos
 
   // 3. ESTADOS DE SELECCIÓN / UI
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const isSelectionMode = selectedIds.length > 0;
   const [refreshing, setRefreshing] = useState(false);
-
+  
   // --- EFECTOS ---
   useFocusEffect(
     useCallback(() => {
-      fetchAllWords();
+        fetchAllWords();
       refreshCategories(); // Traemos categorías para el filtro
       return () => setSelectedIds([]);
     }, [])
@@ -149,19 +149,21 @@ export default function WordsListScreen() {
       if (isSelectionMode) {
         setSelectedIds([]);
         return true;
-      }
-      return false;
-    };
-    const bh = BackHandler.addEventListener("hardwareBackPress", backAction);
-    return () => bh.remove();
+    }
+    return false;
+};
+const bh = BackHandler.addEventListener("hardwareBackPress", backAction);
+return () => bh.remove();
   }, [isSelectionMode]);
+  
+  const handleCreate = () => router.push("/add_word");
 
   // --- LÓGICA DE FILTRADO ---
   const filteredWords = useMemo(() => {
-    return words.filter((w) => {
-      // 1. Por Categoría
-      if (selectedCatFilter !== null && w.category_id !== selectedCatFilter)
-        return false;
+      return words.filter((w) => {
+          // 1. Por Categoría
+          if (selectedCatFilter !== null && w.category_id !== selectedCatFilter)
+            return false;
       // 2. Por Dificultad
       if (selectedDiffFilter !== null && w.difficulty !== selectedDiffFilter)
         return false;
@@ -392,6 +394,13 @@ export default function WordsListScreen() {
           </View>
         }
       />
+
+      <Pressable
+        onPress={handleCreate}
+        className="w-16 h-16 bg-[#D8B4FE] absolute bottom-16 right-6 rounded-2xl items-center justify-center shadow-lg shadow-purple-500/20 active:scale-95 transition-transform"
+      >
+        <Ionicons name="add" size={32} color="#302347" />
+      </Pressable>
     </View>
   );
 }
