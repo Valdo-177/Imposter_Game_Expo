@@ -35,7 +35,6 @@ const SecretCard = ({
   const pan = Gesture.Pan()
     .onUpdate((event) => {
       // Permitimos deslizar hacia arriba (negativo)
-      // Limitamos para que no se vaya infinito (-400)
       translateY.value = Math.max(event.translationY, -400);
 
       // Si desliza más de 150px, consideramos que "miró"
@@ -44,18 +43,19 @@ const SecretCard = ({
       }
     })
     .onEnd(() => {
-      // AL SOLTAR: SIEMPRE REGRESA A TAPAR (Rebote)
+      // AL SOLTAR: Regresa con rebote
       translateY.value = withSpring(0, { damping: 90, stiffness: 500 });
     });
 
-  // Estilo de la TAPA (Cover) - SIEMPRE OPACA
+  // Estilo de la TAPA (Cover)
   const coverStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: translateY.value }],
-    // Eliminamos la opacidad para que no desaparezca
   }));
 
+  console.log("Rendering SecretCard for player:", player);
+
   return (
-    <View className="w-full h-[400px] relative items-center justify-center mb-10">
+    <View className="w-full h-[450px] relative items-center justify-center mb-10">
       {/* 1. CAPA INFERIOR: EL ROL (LO SECRETO) */}
       <View
         className={`absolute w-[85%] h-full rounded-3xl items-center justify-center border-4 p-6 ${
@@ -69,6 +69,8 @@ const SecretCard = ({
           size={80}
           color={player.isImposter ? "#f87171" : "#60a5fa"}
         />
+
+        {/* PALABRA O ROL */}
         <Text
           className={`text-3xl font-black mt-6 text-center font-Helvetica ${
             player.isImposter ? "text-red-400" : "text-blue-400"
@@ -76,9 +78,29 @@ const SecretCard = ({
         >
           {player.word}
         </Text>
-        <Text className="mt-2 text-sm tracking-widest text-gray-400 uppercase font-Helvetica">
+
+        {/* DESCRIPCIÓN */}
+        <Text className="mt-2 text-sm tracking-widest text-center text-gray-400 uppercase font-Helvetica">
           {player.isImposter ? "Engaña a los demás" : "Encuentra al impostor"}
         </Text>
+
+        {/* --- NUEVO: SECCIÓN DE PISTA (SOLO PARA IMPOSTOR) --- */}
+        {player.isImposter && player.hint ? (
+          <View className="mt-8 bg-[#1C1B1B]/50 p-4 rounded-xl w-full border border-red-500/30 items-center">
+            <View className="flex-row items-center gap-2 mb-1">
+              <Ionicons name="bulb" size={16} color="#facc15" />
+              <Text className="text-[#facc15] font-bold text-xs uppercase tracking-widest">
+                PISTA DE AYUDA
+              </Text>
+            </View>
+            <Text className="text-lg font-bold leading-6 text-center text-white font-Helvetica">
+              {player.hint}
+            </Text>
+            <Text className="text-gray-500 text-[10px] text-center mt-1">
+              Úsala para camuflarte
+            </Text>
+          </View>
+        ) : null}
       </View>
 
       {/* 2. CAPA SUPERIOR: LA TAPA DESLIZABLE */}
@@ -87,7 +109,6 @@ const SecretCard = ({
           className="absolute w-[85%] h-full bg-[#302347] rounded-3xl border border-[#4F387F] items-center justify-center shadow-2xl shadow-black z-10"
           style={coverStyle}
         >
-          {/* Textura visual o patrón */}
           <View className="absolute top-4 w-12 h-1 bg-[#4F387F]/50 rounded-full" />
 
           <View className="items-center opacity-80">
@@ -95,7 +116,7 @@ const SecretCard = ({
               <Ionicons name="finger-print" size={40} color="#D8B4FE" />
             </View>
             <Text className="text-lg font-bold text-white font-Helvetica">
-              DESLIZA HACIA ARRIBA PARA VER
+              DESLIZA PARA VER
             </Text>
             <Text className="text-[#D8B4FE] text-xs mt-1 uppercase tracking-widest">
               Suelta para ocultar
@@ -128,16 +149,16 @@ export default function RolePassScreen() {
 
   const handleNext = () => {
     if (currentPlayerIndex < playersQueue.length - 1) {
-      // Siguiente jugador
       setCurrentPlayerIndex((prev) => prev + 1);
-      setHasPeeked(false); // Reseteamos para el siguiente
+      setHasPeeked(false);
     } else {
-      // FIN DE REPARTO -> IR AL JUEGO (GAME ROOM)
-      // Pasamos los datos de los jugadores a la siguiente pantalla
+      // FIN DE REPARTO -> IR AL JUEGO
       router.push({
         pathname: "/game_room",
         params: {
           players: JSON.stringify(playersQueue),
+          // 🔥 AGREGAMOS ESTO: Pasamos la configuración original hacia adelante
+          gameConfig: configString,
         },
       });
     }

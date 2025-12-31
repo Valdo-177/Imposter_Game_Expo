@@ -1,14 +1,15 @@
 import { useEffect, useState } from "react";
 import { useWords } from "./useWords";
 
+// 1. Actualizamos el tipo para incluir la pista (opcional)
 export type PlayerRole = {
   name: string;
   isImposter: boolean;
   word: string;
+  hint?: string; // <--- NUEVO CAMPO
 };
 
 export const useGameSession = (configJson: string) => {
-  // Asegúrate de que useWords exporte fetchAllWords (ver paso 3)
   const { words, fetchAllWords } = useWords();
   
   const [playersQueue, setPlayersQueue] = useState<PlayerRole[]>([]);
@@ -16,19 +17,16 @@ export const useGameSession = (configJson: string) => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Si no hay palabras cargadas, pedirlas y esperar.
     if (words.length === 0) {
         fetchAllWords();
         return; 
     }
 
-    // Si ya calculamos los roles, no hacer nada (evita re-shuffle infinito)
     if (playersQueue.length > 0) return;
 
     const initGame = () => {
       try {
         const config = JSON.parse(configJson);
-        // config: { players, imposters, names, categories }
 
         // 1. Filtrar palabras
         const availableWords = words.filter((w) =>
@@ -41,33 +39,40 @@ export const useGameSession = (configJson: string) => {
             return;
         }
 
-        // 2. Palabra Secreta
+        // 2. Palabra Secreta y Pista
         const randomIndex = Math.floor(Math.random() * availableWords.length);
         const secretWordObj = availableWords[randomIndex];
+        
         const secretWord = secretWordObj.text;
+        // Obtenemos la pista (si no existe, ponemos un string vacío por seguridad)
+        const secretHint = secretWordObj.hint || "Sin pista disponible"; 
 
         // 3. Roles
         let rolesArr = Array(config.players).fill("civilian");
         let impostersAssigned = 0;
-        
-        // Evitar bucle infinito si hay error de config
         const maxImposters = Math.min(config.imposters, config.players); 
 
         while (impostersAssigned < maxImposters) {
             const idx = Math.floor(Math.random() * config.players);
             if (rolesArr[idx] === "civilian") {
-            rolesArr[idx] = "imposter";
-            impostersAssigned++;
+                rolesArr[idx] = "imposter";
+                impostersAssigned++;
             }
         }
 
         // 4. Mapear
         const finalPlayers: PlayerRole[] = config.names.map(
-            (name: string, index: number) => ({
-            name,
-            isImposter: rolesArr[index] === "imposter",
-            word: rolesArr[index] === "imposter" ? "Eres el IMPOSTOR" : secretWord,
-            })
+            (name: string, index: number) => {
+                const isImposter = rolesArr[index] === "imposter";
+                return {
+                    name,
+                    isImposter,
+                    word: isImposter ? "Eres el IMPOSTOR" : secretWord,
+                    // Si es impostor, le damos la pista de la palabra secreta.
+                    // Si es civil, undefined (o null) para que no la vea.
+                    hint: isImposter ? secretHint : undefined 
+                };
+            }
         );
 
         setPlayersQueue(finalPlayers);
@@ -80,7 +85,7 @@ export const useGameSession = (configJson: string) => {
     };
 
     initGame();
-  }, [words, configJson]); // Dependencias clave
+  }, [words, configJson]);
 
   return { playersQueue, loading, error };
 };

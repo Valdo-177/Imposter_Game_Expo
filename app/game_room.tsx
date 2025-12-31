@@ -15,6 +15,8 @@ export default function GameRoomScreen() {
   const [players, setPlayers] = useState<PlayerRole[]>([]);
   const [starterName, setStarterName] = useState<string>("");
 
+  const gameConfig = (params.gameConfig as string) || "{}";
+
   useEffect(() => {
     if (params.players) {
       try {
@@ -51,6 +53,15 @@ export default function GameRoomScreen() {
         },
       ]
     );
+  };
+
+  const handleRematch = () => {
+    // Usamos 'replace' en vez de 'push' para reiniciar el historial
+    // y que al dar 'atrás' no vuelvas a la partida terminada.
+    router.replace({
+      pathname: "/role_pass",
+      params: { config: gameConfig }, // 🔄 ¡Aquí está la magia! Le devolvemos la config intacta.
+    });
   };
 
   return (
@@ -104,22 +115,22 @@ export default function GameRoomScreen() {
           </Animated.View>
 
           {/* BOTÓN REVELAR (Acción Principal) */}
-          <View className="w-full px-6">
+          <View className="w-full gap-10 px-6">
             <Pressable
-              onPress={handleReveal}
-              className="w-full bg-[#D8B4FE] py-4 rounded-3xl items-center shadow-lg shadow-purple-500/20 active:scale-95 transition-transform mb-4"
+              onPress={handleRematch}
+              className="bg-[#D8B4FE] px-8 py-4 rounded-full shadow-lg active:scale-95"
             >
-              <Text className="text-[#302347] font-black text-lg font-Helvetica tracking-wider uppercase">
-                Revelar Identidades
+              <Text className="text-[#302347] font-black text-center text-lg font-Helvetica">
+                JUGAR OTRA VEZ
               </Text>
             </Pressable>
-
+            
             <Pressable
-              onPress={() => router.dismissAll()}
-              className="items-center py-2"
+              onPress={handleReveal}
+              className="items-center w-full mb-4 transition-transform active:scale-95"
             >
-              <Text className="text-sm font-bold text-gray-500 underline">
-                Cancelar Partida
+              <Text className="text-lg font-black tracking-wider text-white underline uppercase font-Helvetica">
+                Revelar Identidades
               </Text>
             </Pressable>
           </View>
