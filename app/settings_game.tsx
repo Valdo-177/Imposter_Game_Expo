@@ -107,6 +107,13 @@ const SettingsGame = () => {
             onPress={() => router.push("/add_word")}
             isLast
           />
+          <SettingsItem
+            iconName="cloud-upload-outline" // Icono perfecto para esto
+            title="Importar / Exportar"
+            subtitle="Comparte o carga packs de palabras"
+            onPress={() => router.push("/import_export")}
+            isLast // Si es el último de la lista
+          />
         </View>
 
         {/* SECCIÓN 3: GENERAL */}

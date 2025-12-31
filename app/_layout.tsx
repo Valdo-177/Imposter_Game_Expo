@@ -191,6 +191,10 @@ export default function RootLayout() {
                 options={{ headerShown: false }}
               />
               <Stack.Screen
+                name="import_export"
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
                 name="modal"
                 options={{ presentation: "modal", title: "Modal" }}
               />

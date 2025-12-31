@@ -1,15 +1,17 @@
+import * as Sharing from "expo-sharing";
 import { useSQLiteContext } from "expo-sqlite";
 import { useCallback, useState } from "react";
+// Usamos legacy para métodos de archivo y el normal para constantes si es necesario
+import * as FileSystem from "expo-file-system/legacy";
 
-// 1. Actualizamos la interfaz
 export interface WordWithCategory {
   id: number;
   text: string;
-  hint?: string; // <--- Nuevo campo (opcional)
+  hint?: string;
   category_id: number;
   difficulty: 1 | 2 | 3;
-  category_name?: string; 
-  category_icon?: string; 
+  category_name?: string;
+  category_icon?: string;
 }
 
 export const useWords = () => {
@@ -17,7 +19,7 @@ export const useWords = () => {
   const [words, setWords] = useState<WordWithCategory[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  // OBTENER TODAS (El SELECT w.* ya trae la columna hint si existe en la BD)
+  // 1. OBTENER TODAS
   const fetchAllWords = useCallback(async () => {
     setIsLoading(true);
     try {
@@ -35,46 +37,38 @@ export const useWords = () => {
     }
   }, [db]);
 
-  // 2. AGREGAR PALABRA (Recibimos hint)
+  // 2. AGREGAR
   const addWord = async (
     text: string,
     categoryId: number,
     difficulty: number,
-    hint: string = "" // Valor por defecto vacío
+    hint: string = ""
   ) => {
     try {
       const cleanText = text.trim();
-      const cleanHint = hint.trim();
-
-      if (!cleanText)
-        return { success: false, error: "El texto no puede estar vacío" };
+      if (!cleanText) return { success: false, error: "Texto vacío" };
 
       const existing = await db.getFirstAsync<{ count: number }>(
         `SELECT COUNT(*) as count FROM words WHERE LOWER(text) = LOWER(?) AND category_id = ?`,
         [cleanText, categoryId]
       );
       if (existing && existing.count > 0)
-        return {
-          success: false,
-          error: "Esta palabra ya existe en esta categoría",
-        };
+        return { success: false, error: "Ya existe" };
 
-      // INCLUIMOS hint EN EL INSERT
       await db.runAsync(
         "INSERT INTO words (text, category_id, difficulty, hint) VALUES (?, ?, ?, ?)",
         cleanText,
         categoryId,
         difficulty,
-        cleanHint
+        hint.trim()
       );
       return { success: true };
-    } catch (error) {
-      console.error(error);
-      return { success: false, error: "Error BD al guardar" };
+    } catch (e) {
+      return { success: false, error: "Error BD" };
     }
   };
 
-  // 3. ACTUALIZAR PALABRA (Recibimos hint)
+  // 3. ACTUALIZAR
   const updateWord = async (
     id: number,
     text: string,
@@ -83,42 +77,144 @@ export const useWords = () => {
     hint: string = ""
   ) => {
     try {
-      const cleanText = text.trim();
-      const cleanHint = hint.trim();
-
-      const existing = await db.getFirstAsync<{ count: number }>(
-        `SELECT COUNT(*) as count FROM words 
-         WHERE LOWER(text) = LOWER(?) AND category_id = ? AND id != ?`,
-        [cleanText, categoryId, id]
-      );
-
-      if (existing && existing.count > 0) {
-        return { success: false, error: "Esa palabra ya existe" };
-      }
-
-      // INCLUIMOS hint EN EL UPDATE
       await db.runAsync(
         "UPDATE words SET text = ?, category_id = ?, difficulty = ?, hint = ? WHERE id = ?",
-        cleanText,
+        text.trim(),
         categoryId,
         difficulty,
-        cleanHint,
+        hint.trim(),
         id
       );
-
       return { success: true };
-    } catch (error) {
-      console.error("Error update:", error);
-      return { success: false, error: "Error al actualizar" };
+    } catch (e) {
+      return { success: false, error: "Error BD" };
     }
   };
 
+  // 4. ELIMINAR (¡Aquí estaba el problema antes!)
   const deleteWord = async (id: number) => {
     try {
       await db.runAsync("DELETE FROM words WHERE id = ?", id);
+      // Actualizamos la lista localmente para reflejar el cambio inmediato
+      await fetchAllWords();
       return true;
     } catch (error) {
       return false;
+    }
+  };
+
+  // 5. IMPORTAR INTELIGENTE (Crea Categoría + Upsert Palabra)
+  const importWordsFromJson = async (jsonString: string) => {
+    console.log("Importando palabras desde JSON...");
+    console.log("jsonString: ", jsonString);
+    try {
+      const parsedData = JSON.parse(jsonString);
+      if (!Array.isArray(parsedData))
+        return { success: false, error: "Formato inválido (debe ser array)" };
+
+      let insertedCount = 0;
+      let updatedCount = 0;
+
+      await db.withTransactionAsync(async () => {
+        for (const item of parsedData) {
+          // Necesitamos texto y nombre de categoría para importar portablemente
+          if (!item.text || !item.category_name) continue;
+
+          const catName = item.category_name.trim();
+          const wordText = item.text.trim();
+
+          // A. BUSCAR O CREAR CATEGORÍA
+          let catId: number;
+          const existingCat = await db.getFirstAsync<{ id: number }>(
+            "SELECT id FROM categories WHERE LOWER(name) = LOWER(?)",
+            [catName]
+          );
+
+          if (existingCat) {
+            catId = existingCat.id;
+          } else {
+            const res = await db.runAsync(
+              "INSERT INTO categories (name, icon, is_custom) VALUES (?, ?, 1)",
+              catName,
+              item.category_icon || "list"
+            );
+            catId = res.lastInsertRowId;
+          }
+
+          // B. BUSCAR O CREAR PALABRA
+          const existingWord = await db.getFirstAsync<{ id: number }>(
+            "SELECT id FROM words WHERE LOWER(text) = LOWER(?) AND category_id = ?",
+            [wordText, catId]
+          );
+
+          if (existingWord) {
+            // Actualizar si ya existe
+            await db.runAsync(
+              "UPDATE words SET difficulty = ?, hint = ? WHERE id = ?",
+              item.difficulty || 1,
+              item.hint || "",
+              existingWord.id
+            );
+            updatedCount++;
+          } else {
+            // Insertar si es nueva
+            await db.runAsync(
+              "INSERT INTO words (text, category_id, difficulty, hint) VALUES (?, ?, ?, ?)",
+              wordText,
+              catId,
+              item.difficulty || 1,
+              item.hint || ""
+            );
+            insertedCount++;
+          }
+        }
+      });
+
+      await fetchAllWords();
+      return { success: true, count: insertedCount, updated: updatedCount };
+    } catch (error) {
+      console.error(error);
+      return { success: false, error: "JSON inválido" };
+    }
+  };
+
+  // 6. EXPORTAR SELECTIVO
+  const exportWordsAsJson = async (categoryIds: number[]) => {
+    try {
+      if (categoryIds.length === 0)
+        return { success: false, error: "Selecciona categorías" };
+
+      const placeholders = categoryIds.map(() => "?").join(",");
+      const query = `
+        SELECT w.text, w.difficulty, w.hint, c.name as category_name, c.icon as category_icon
+        FROM words w
+        JOIN categories c ON w.category_id = c.id
+        WHERE c.id IN (${placeholders})
+      `;
+
+      const data = await db.getAllAsync(query, categoryIds);
+
+      if (data.length === 0)
+        return { success: false, error: "Categorías vacías" };
+
+      // Usamos cacheDirectory para evitar problemas de permisos de escritura
+      const fileUri = FileSystem.cacheDirectory + "imposter_pack.json";
+      await FileSystem.writeAsStringAsync(
+        fileUri,
+        JSON.stringify(data, null, 2)
+      );
+
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(fileUri, {
+          mimeType: "application/json",
+          dialogTitle: "Guardar Pack",
+        });
+        return { success: true };
+      }
+      return { success: false, error: "Compartir no soportado" };
+    } catch (error) {
+      console.error(error);
+      return { success: false, error: "Error exportando" };
     }
   };
 
@@ -128,6 +224,8 @@ export const useWords = () => {
     fetchAllWords,
     addWord,
     updateWord,
-    deleteWord,
+    deleteWord, // <--- ¡AQUÍ ESTÁ! Asegúrate de que esta línea exista.
+    importWordsFromJson,
+    exportWordsAsJson,
   };
 };
