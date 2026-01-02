@@ -103,25 +103,64 @@ export const useWords = () => {
     }
   };
 
-  // 5. IMPORTAR INTELIGENTE (Crea Categoría + Upsert Palabra)
   const importWordsFromJson = async (jsonString: string) => {
     console.log("Importando palabras desde JSON...");
-    console.log("jsonString: ", jsonString);
     try {
       const parsedData = JSON.parse(jsonString);
-      if (!Array.isArray(parsedData))
-        return { success: false, error: "Formato inválido (debe ser array)" };
+
+      if (!Array.isArray(parsedData)) {
+        return { success: false, error: "El JSON no es una lista ([...])." };
+      }
+
+      if (parsedData.length === 0) {
+        return { success: false, error: "El archivo JSON está vacío." };
+      }
 
       let insertedCount = 0;
       let updatedCount = 0;
 
+      // Usamos transacción: Si ocurre un error, se deshacen todos los cambios (Rollback)
       await db.withTransactionAsync(async () => {
-        for (const item of parsedData) {
-          // Necesitamos texto y nombre de categoría para importar portablemente
-          if (!item.text || !item.category_name) continue;
+        for (let i = 0; i < parsedData.length; i++) {
+          const item = parsedData[i];
+          const indexInfo = `Ítem #${i + 1}`;
+
+          // --- VALIDACIONES ---
+
+          // 1. Validar Texto
+          if (
+            !item.text ||
+            typeof item.text !== "string" ||
+            item.text.trim() === ""
+          ) {
+            throw new Error(
+              `${indexInfo}: Falta la propiedad "text" o está vacía.`
+            );
+          }
+
+          // 2. Validar Categoría (IMPORTANTE: Debe ser el nombre, no el ID)
+          if (!item.category_name || typeof item.category_name !== "string") {
+            // Ayuda extra: si el usuario puso category_id por error, le avisamos
+            if (item.category_id) {
+              throw new Error(
+                `${indexInfo} ("${item.text}"): Tiene "category_id" pero falta "category_name". Para importar, el JSON debe tener el nombre de la categoría.`
+              );
+            }
+            throw new Error(
+              `${indexInfo} ("${item.text}"): Falta la propiedad "category_name".`
+            );
+          }
+
+          // --- FIN VALIDACIONES ---
+          // ... (validaciones anteriores)
 
           const catName = item.category_name.trim();
           const wordText = item.text.trim();
+
+          // CAPTURAMOS EL ICONO DEL JSON (O ponemos 'list' si no viene)
+          const catIcon = item.category_icon
+            ? item.category_icon.trim()
+            : "list";
 
           // A. BUSCAR O CREAR CATEGORÍA
           let catId: number;
@@ -132,11 +171,14 @@ export const useWords = () => {
 
           if (existingCat) {
             catId = existingCat.id;
+            // Opcional: Si quieres que el JSON actualice el icono de una categoría existente, descomenta esto:
+            // await db.runAsync("UPDATE categories SET icon = ? WHERE id = ?", catIcon, catId);
           } else {
+            // ¡AQUÍ ES DONDE SE USA EL ICONO NUEVO!
             const res = await db.runAsync(
               "INSERT INTO categories (name, icon, is_custom) VALUES (?, ?, 1)",
               catName,
-              item.category_icon || "list"
+              catIcon // Usamos el icono que vino en el JSON
             );
             catId = res.lastInsertRowId;
           }
@@ -148,7 +190,7 @@ export const useWords = () => {
           );
 
           if (existingWord) {
-            // Actualizar si ya existe
+            // Actualizar
             await db.runAsync(
               "UPDATE words SET difficulty = ?, hint = ? WHERE id = ?",
               item.difficulty || 1,
@@ -157,7 +199,7 @@ export const useWords = () => {
             );
             updatedCount++;
           } else {
-            // Insertar si es nueva
+            // Insertar
             await db.runAsync(
               "INSERT INTO words (text, category_id, difficulty, hint) VALUES (?, ?, ?, ?)",
               wordText,
@@ -170,11 +212,16 @@ export const useWords = () => {
         }
       });
 
+      // Si todo sale bien, refrescamos la lista
       await fetchAllWords();
       return { success: true, count: insertedCount, updated: updatedCount };
-    } catch (error) {
-      console.error(error);
-      return { success: false, error: "JSON inválido" };
+    } catch (error: any) {
+      console.error("Error importando:", error);
+      // Devolvemos el mensaje de error específico que lanzamos arriba
+      return {
+        success: false,
+        error: error.message || "Error desconocido al procesar el JSON.",
+      };
     }
   };
 

@@ -71,8 +71,7 @@ const CounterControl = React.memo(
   }
 );
 
-// --- COMPONENTE 2: HEADER SEPARADO (Solución al reinicio de animación) ---
-// Al sacarlo y usar React.memo, evitamos que se renderice de nuevo al mover jugadores
+// --- COMPONENTE 2: HEADER SEPARADO ---
 const SetupHeader = React.memo(
   ({
     playerCount,
@@ -165,7 +164,6 @@ const SetupHeader = React.memo(
 export default function SetupGameScreen() {
   const router = useRouter();
   const { categories } = useCategories();
-
   const insets = useSafeAreaInsets();
 
   const {
@@ -203,7 +201,6 @@ export default function SetupGameScreen() {
     });
   };
 
-  // Render Item Memoizado
   const renderItem = useCallback(
     ({ item, drag, isActive, getIndex }: RenderItemParams<any>) => (
       <DraggablePlayerItem
@@ -219,7 +216,7 @@ export default function SetupGameScreen() {
 
   return (
     <View className="flex-1 bg-[#1C1B1B]">
-      {/* HEADER FIJO (Navegación) */}
+      {/* HEADER FIJO */}
       <View className="flex-row items-center px-6 pb-4 pt-14 bg-[#1C1B1B] z-10 border-b border-[#4F387F]/10">
         <Pressable
           onPress={() => router.back()}
@@ -232,15 +229,17 @@ export default function SetupGameScreen() {
         </Text>
       </View>
 
+      {/* CONTENEDOR FLEXIBLE */}
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : undefined}
         style={{ flex: 1 }}
       >
+        {/* CORRECCIÓN: className="flex-1" obliga a la lista a ocupar solo el espacio sobrante */}
         <DraggableFlatList
           data={players}
           onDragEnd={reorderPlayers}
           keyExtractor={(item) => item.id}
-          // HEADER PASADO COMO PROP (Evita re-renders y reinicio de animaciones)
+          className="flex-1"  // <--- ¡ESTO ES LO IMPORTANTE!
           ListHeaderComponent={
             <SetupHeader
               playerCount={playerCount}
@@ -252,23 +251,21 @@ export default function SetupGameScreen() {
               toggleCategory={toggleCategory}
             />
           }
-          // SOLUCIÓN AL SCROLL Y TECLADO:
-          // 1. Damos mucho padding abajo para que al scrollear el último item suba por encima del teclado
           contentContainerStyle={{
             paddingHorizontal: 24,
-            paddingBottom: 150, // Mucho espacio extra
+            paddingBottom: 40, // Reducido un poco ya que el botón no flotará encima, sino debajo
             paddingTop: 10,
           }}
           keyboardShouldPersistTaps="handled"
-          keyboardDismissMode="on-drag" // Oculta teclado al deslizar la lista
+          keyboardDismissMode="on-drag"
           renderItem={renderItem}
-          // Optimización para listas largas
           removeClippedSubviews={false}
+          containerStyle={{ flex: 1 }} // Refuerzo para asegurar el flex
         />
 
-        {/* FOOTER FLOTANTE SOBRE EL TECLADO */}
+        {/* FOOTER FIJO ABAJO */}
         <View
-          className="p-6 pt-4 bg-[#1C1B1B] border-t border-[#4F387F]/20"
+          className="px-6 pt-4 bg-[#1C1B1B] border-t border-[#4F387F]/20"
           style={{ paddingBottom: Math.max(insets.bottom, 20) }}
         >
           <Pressable
