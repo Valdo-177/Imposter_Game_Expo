@@ -52,23 +52,29 @@ const SecretCard = ({
     transform: [{ translateY: translateY.value }],
   }));
 
-  console.log("Rendering SecretCard for player:", player);
-
   return (
     <View className="w-full h-[450px] relative items-center justify-center mb-10">
       {/* 1. CAPA INFERIOR: EL ROL (LO SECRETO) */}
       <View
-        className={`absolute w-[85%] h-full rounded-3xl items-center justify-center border-4 p-6 ${
+        className={`absolute w-[85%] h-full rounded-3xl items-center justify-center border-2 p-6 ${
           player.isImposter
             ? "bg-[#301c25] border-red-500/50"
             : "bg-[#1c2830] border-blue-500/50"
         }`}
       >
-        <Ionicons
+        <View className="w-20 h-20 rounded-full bg-[#1C1B1B]/30 items-center justify-center mb-4 border border-[#D8B4FE]/20">
+          <Ionicons
+            name={player.isImposter ? "skull-outline" : "search-outline"}
+            size={40}
+            color={player.isImposter ? "#f87171" : "#60a5fa"}
+          />
+        </View>
+
+        {/* <Ionicons
           name={player.isImposter ? "skull-outline" : "search-outline"}
-          size={80}
+          size={60}
           color={player.isImposter ? "#f87171" : "#60a5fa"}
-        />
+        /> */}
 
         {/* PALABRA O ROL */}
         <Text
@@ -86,7 +92,7 @@ const SecretCard = ({
 
         {/* --- NUEVO: SECCIÓN DE PISTA (SOLO PARA IMPOSTOR) --- */}
         {player.isImposter && player.hint ? (
-          <View className="mt-8 bg-[#1C1B1B]/50 p-4 rounded-xl w-full border border-red-500/30 items-center">
+          <View className="items-center w-full p-4 mt-8 rounded-xl">
             <View className="flex-row items-center gap-2 mb-1">
               <Ionicons name="bulb" size={16} color="#facc15" />
               <Text className="text-[#facc15] font-bold text-xs uppercase tracking-widest">
@@ -191,7 +197,7 @@ export default function RolePassScreen() {
             {currentPlayer.name}
           </Text>
           <Text className="px-10 mt-2 text-sm text-center text-gray-500">
-            Mantén presionada la tarjeta para ver tu rol secreto.
+            Desliza la tarjeta para ver tu rol secreto.
           </Text>
         </View>
 

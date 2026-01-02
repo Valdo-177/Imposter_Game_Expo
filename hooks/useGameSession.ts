@@ -1,12 +1,11 @@
 import { useEffect, useState } from "react";
 import { useWords } from "./useWords";
 
-// 1. Actualizamos el tipo para incluir la pista (opcional)
 export type PlayerRole = {
   name: string;
   isImposter: boolean;
   word: string;
-  hint?: string; // <--- NUEVO CAMPO
+  hint?: string;
 };
 
 export const useGameSession = (configJson: string) => {
@@ -17,18 +16,20 @@ export const useGameSession = (configJson: string) => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    // Si no hay palabras cargadas, las pedimos
     if (words.length === 0) {
         fetchAllWords();
         return; 
     }
 
+    // Si ya se generó la cola, no hacemos nada (evita re-renders infinitos)
     if (playersQueue.length > 0) return;
 
     const initGame = () => {
       try {
         const config = JSON.parse(configJson);
 
-        // 1. Filtrar palabras
+        // 1. Filtrar palabras por categoría
         const availableWords = words.filter((w) =>
             config.categories.includes(w.category_id)
         );
@@ -39,15 +40,26 @@ export const useGameSession = (configJson: string) => {
             return;
         }
 
-        // 2. Palabra Secreta y Pista
+        // 2. Selección de Palabra y PROCESAMIENTO DE PISTAS MÚLTIPLES
         const randomIndex = Math.floor(Math.random() * availableWords.length);
         const secretWordObj = availableWords[randomIndex];
-        
         const secretWord = secretWordObj.text;
-        // Obtenemos la pista (si no existe, ponemos un string vacío por seguridad)
-        const secretHint = secretWordObj.hint || "Sin pista disponible"; 
+        
+        // --- LOGICA NUEVA: SEPARAR PISTAS POR COMA ---
+        const rawHint = secretWordObj.hint || "";
+        
+        // Convertimos "Pista A, Pista B, Pista C" -> ["Pista A", "Pista B", "Pista C"]
+        // .trim() elimina espacios al inicio/final de cada pista
+        // .filter() elimina pistas vacías (por si alguien puso ",,")
+        let hintsArray = rawHint.split(",").map(h => h.trim()).filter(h => h.length > 0);
 
-        // 3. Roles
+        // Fallback: Si no hay pistas, ponemos un mensaje por defecto
+        if (hintsArray.length === 0) {
+            hintsArray = ["Sin pista disponible"];
+        }
+        // ----------------------------------------------
+
+        // 3. Asignación de Roles (Impostores vs Civiles)
         let rolesArr = Array(config.players).fill("civilian");
         let impostersAssigned = 0;
         const maxImposters = Math.min(config.imposters, config.players); 
@@ -60,17 +72,28 @@ export const useGameSession = (configJson: string) => {
             }
         }
 
-        // 4. Mapear
+        // 4. Mapear Jugadores y ASIGNAR PISTAS CÍCLICAMENTE
+        let currentImposterIndex = 0; // Contador para saber qué pista dar
+
         const finalPlayers: PlayerRole[] = config.names.map(
             (name: string, index: number) => {
                 const isImposter = rolesArr[index] === "imposter";
+                let assignedHint: string | undefined = undefined;
+
+                if (isImposter) {
+                    // Usamos el operador módulo (%) para rotar las pistas
+                    // Si hay 2 pistas y es el 3er impostor: 2 % 2 = 0 (vuelve a la primera pista)
+                    const hintIndex = currentImposterIndex % hintsArray.length;
+                    assignedHint = hintsArray[hintIndex];
+                    
+                    currentImposterIndex++; // Preparamos para el siguiente impostor
+                }
+
                 return {
                     name,
                     isImposter,
                     word: isImposter ? "Eres el IMPOSTOR" : secretWord,
-                    // Si es impostor, le damos la pista de la palabra secreta.
-                    // Si es civil, undefined (o null) para que no la vea.
-                    hint: isImposter ? secretHint : undefined 
+                    hint: assignedHint 
                 };
             }
         );
