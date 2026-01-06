@@ -190,10 +190,10 @@ export default function RolePassScreen() {
       <View className="flex-1 bg-[#1C1B1B]">
         {/* HEADER: TURNO */}
         <View className="items-center px-6 pt-16">
-          <Text className="text-gray-400 text-xs uppercase tracking-[0.2em] mb-2">
+          <Text className="text-gray-400 text-xs w-full text-center uppercase tracking-[0.2em] mb-2">
             Turno del Jugador {currentPlayerIndex + 1}/{playersQueue.length}
           </Text>
-          <Text className="text-4xl italic font-black text-center text-white font-Helvetica">
+          <Text className="text-4xl italic font-black text-center text-white font-Helvetica w-full max-w-[90%]">
             {currentPlayer.name}
           </Text>
           <Text className="px-10 mt-2 text-sm text-center text-gray-500">
